@@ -5,13 +5,27 @@ import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 import logger from "@/lib/logger.ts";
 import util from "@/lib/util.ts";
-import { generateImages, DEFAULT_MODEL } from "./images.ts";
+import { generateImageComposition, generateImages, DEFAULT_MODEL } from "./images.ts";
 import { generateVideo, generateSeedanceVideo, isSeedanceModel, DEFAULT_MODEL as DEFAULT_VIDEO_MODEL } from "./videos.ts";
 
 // 最大重试次数
 const MAX_RETRY_COUNT = 3;
 // 重试延迟
 const RETRY_DELAY = 5000;
+
+interface ChatImageConfig {
+  ratio?: string;
+  resolution?: string;
+  sampleStrength?: number;
+  negativePrompt?: string;
+  intelligentRatio?: boolean;
+}
+
+interface ChatCompletionOptions {
+  imageConfig?: any;
+  images?: any[];
+  retryCount?: number;
+}
 
 /**
  * 解析模型
@@ -39,6 +53,78 @@ function isVideoModel(model: string) {
   return model.startsWith("jimeng-video") || model.startsWith("seedance-");
 }
 
+function normalizeImageConfig(imageConfig?: any): ChatImageConfig {
+  if (!imageConfig || !_.isObject(imageConfig)) return {};
+  return {
+    ratio: _.isString(imageConfig.ratio) ? imageConfig.ratio : undefined,
+    resolution: _.isString(imageConfig.resolution) ? imageConfig.resolution : undefined,
+    sampleStrength: _.isFinite(imageConfig.sample_strength)
+      ? imageConfig.sample_strength
+      : (_.isFinite(imageConfig.sampleStrength) ? imageConfig.sampleStrength : undefined),
+    negativePrompt: _.isString(imageConfig.negative_prompt)
+      ? imageConfig.negative_prompt
+      : (_.isString(imageConfig.negativePrompt) ? imageConfig.negativePrompt : undefined),
+    intelligentRatio: _.isBoolean(imageConfig.intelligent_ratio)
+      ? imageConfig.intelligent_ratio
+      : (_.isBoolean(imageConfig.intelligentRatio) ? imageConfig.intelligentRatio : undefined),
+  };
+}
+
+function normalizeImages(images?: any[]): string[] {
+  if (_.isUndefined(images)) return [];
+  if (!_.isArray(images))
+    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, "images 必须是数组");
+  if (images.length > 10)
+    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, "最多支持10张输入图片");
+
+  return images.map((image, index) => {
+    if (_.isString(image)) return image;
+    if (_.isObject(image) && _.isString(image.url)) return image.url;
+    throw new APIException(
+      EX.API_REQUEST_PARAMS_INVALID,
+      `图片 ${index + 1} 格式不正确：应为URL字符串或包含url字段的对象`
+    );
+  });
+}
+
+function extractMessageText(content: any): string {
+  if (_.isString(content)) return content;
+  if (!_.isArray(content)) return _.toString(content || "");
+
+  return content
+    .map((item) => {
+      if (_.isString(item)) return item;
+      if (_.isObject(item) && _.isString(item.text)) return item.text;
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function getPromptFromMessages(messages: any[]): string {
+  const prompt = extractMessageText(messages[messages.length - 1]?.content).trim();
+  if (!prompt)
+    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, "消息内容不能为空");
+  return prompt;
+}
+
+async function generateImagesFromChatRequest(
+  messages: any[],
+  refreshToken: string,
+  _model: string,
+  options: ChatCompletionOptions = {}
+) {
+  const prompt = getPromptFromMessages(messages);
+  const imageConfig = normalizeImageConfig(options.imageConfig);
+  const images = normalizeImages(options.images);
+
+  if (images.length > 0) {
+    return await generateImageComposition(_model, prompt, images, imageConfig, refreshToken);
+  }
+
+  return await generateImages(_model, prompt, imageConfig, refreshToken);
+}
+
 /**
  * 同步对话补全
  *
@@ -51,13 +137,14 @@ export async function createCompletion(
   messages: any[],
   refreshToken: string,
   _model = DEFAULT_MODEL,
-  retryCount = 0
+  options: ChatCompletionOptions = {}
 ) {
   return (async () => {
+    const retryCount = _.defaultTo(options.retryCount, 0);
     if (messages.length === 0)
       throw new APIException(EX.API_REQUEST_PARAMS_INVALID, "消息不能为空");
 
-    const { model, width, height } = parseModel(_model);
+    const { model } = parseModel(_model);
     logger.info(messages);
 
     // 检查是否为视频生成请求
@@ -147,14 +234,11 @@ export async function createCompletion(
       }
     } else {
       // 图像生成
-      const imageUrls = await generateImages(
+      const imageUrls = await generateImagesFromChatRequest(
+        messages,
+        refreshToken,
         model,
-        messages[messages.length - 1].content,
-        {
-          width,
-          height,
-        },
-        refreshToken
+        options
       );
 
       return {
@@ -184,7 +268,10 @@ export async function createCompletion(
       logger.warn(`Try again after ${RETRY_DELAY / 1000}s...`);
       return (async () => {
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-        return createCompletion(messages, refreshToken, _model, retryCount + 1);
+        return createCompletion(messages, refreshToken, _model, {
+          ...options,
+          retryCount: retryCount + 1,
+        });
       })();
     }
     throw err;
@@ -203,10 +290,11 @@ export async function createCompletionStream(
   messages: any[],
   refreshToken: string,
   _model = DEFAULT_MODEL,
-  retryCount = 0
+  options: ChatCompletionOptions = {}
 ) {
   return (async () => {
-    const { model, width, height } = parseModel(_model);
+    const retryCount = _.defaultTo(options.retryCount, 0);
+    const { model } = parseModel(_model);
     logger.info(messages);
 
     const stream = new PassThrough();
@@ -431,11 +519,11 @@ export async function createCompletionStream(
           "\n\n"
       );
 
-      generateImages(
+      generateImagesFromChatRequest(
+        messages,
+        refreshToken,
         model,
-        messages[messages.length - 1].content,
-        { width, height },
-        refreshToken
+        options
       )
         .then((imageUrls) => {
           for (let i = 0; i < imageUrls.length; i++) {
@@ -515,7 +603,10 @@ export async function createCompletionStream(
           messages,
           refreshToken,
           _model,
-          retryCount + 1
+          {
+            ...options,
+            retryCount: retryCount + 1,
+          }
         );
       })();
     }
