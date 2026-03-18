@@ -2,9 +2,15 @@ FROM node:lts AS BUILD_IMAGE
 
 WORKDIR /app
 
+COPY package.json package-lock.json ./
+
+RUN npm config set registry https://registry.npmmirror.com/ \
+    && npm ci --no-audit
+
 COPY . /app
 
-RUN yarn install --registry https://registry.npmmirror.com/ --ignore-engines && yarn run build
+RUN npm run build \
+    && npm prune --omit=dev
 
 FROM node:lts
 

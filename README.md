@@ -43,6 +43,12 @@ docker run -d \
   jimeng2me_newapi:latest
 ```
 
+如果构建时想看完整日志：
+
+```bash
+docker build --no-cache --progress=plain -t jimeng2me_newapi:latest .
+```
+
 ### 更新代码后重新部署
 
 ```bash
