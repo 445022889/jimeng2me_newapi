@@ -68,6 +68,51 @@ Jimeng AI Free API 是一个逆向工程的 API 服务器，将即梦 AI（Jimen
 
 ### 方式一：Docker 部署（推荐）
 
+**使用当前仓库代码部署（默认端口 `15745`）：**
+
+```bash
+# 克隆你的仓库
+git clone https://github.com/445022889/jimeng2me_newapi.git
+
+# 进入目录
+cd jimeng2me_newapi
+
+# 构建镜像
+docker build -t jimeng2me_newapi:latest .
+
+# 如已有旧容器，先删除
+docker rm -f jimeng2me_newapi 2>/dev/null || true
+
+# 启动容器
+docker run -d \
+  --name jimeng2me_newapi \
+  --restart unless-stopped \
+  -p 15745:15745 \
+  -e TZ=Asia/Shanghai \
+  jimeng2me_newapi:latest
+```
+
+**更新代码后重新部署：**
+
+```bash
+cd jimeng2me_newapi
+git pull
+docker build -t jimeng2me_newapi:latest .
+docker rm -f jimeng2me_newapi
+docker run -d \
+  --name jimeng2me_newapi \
+  --restart unless-stopped \
+  -p 15745:15745 \
+  -e TZ=Asia/Shanghai \
+  jimeng2me_newapi:latest
+```
+
+**启动后测试：**
+
+```bash
+curl http://127.0.0.1:15745/v1/models
+```
+
 **使用 Docker Hub 镜像：**
 
 ```bash
@@ -76,7 +121,7 @@ docker pull wwwzhouhui569/jimeng-free-api-all:latest
 
 # 启动容器
 docker run -it -d --init --name jimeng-free-api-all \
-  -p 8000:8000 \
+  -p 15745:15745 \
   -e TZ=Asia/Shanghai \
   wwwzhouhui569/jimeng-free-api-all:latest
 ```
@@ -85,17 +130,17 @@ docker run -it -d --init --name jimeng-free-api-all \
 
 ```bash
 # 克隆项目
-git clone https://github.com/wwwzhouhui/jimeng-free-api-all.git
+git clone https://github.com/445022889/jimeng2me_newapi.git
 
 # 进入目录
-cd jimeng-free-api-all
+cd jimeng2me_newapi
 
 # 构建镜像
 docker build -t jimeng-free-api-all:latest .
 
 # 启动容器
 docker run -it -d --init --name jimeng-free-api-all \
-  -p 8000:8000 \
+  -p 15745:15745 \
   -e TZ=Asia/Shanghai \
   jimeng-free-api-all:latest
 ```
@@ -104,10 +149,10 @@ docker run -it -d --init --name jimeng-free-api-all \
 
 ```bash
 # 克隆项目
-git clone https://github.com/wwwzhouhui/jimeng-free-api-all.git
+git clone https://github.com/445022889/jimeng2me_newapi.git
 
 # 进入目录
-cd jimeng-free-api-all
+cd jimeng2me_newapi
 
 # 安装依赖
 npm install
@@ -158,7 +203,7 @@ Authorization: Bearer sessionid1,sessionid2,sessionid3
 **文生图示例：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/images/generations \
+curl -X POST http://localhost:15745/v1/images/generations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your_sessionid" \
   -d '{
@@ -172,7 +217,7 @@ curl -X POST http://localhost:8000/v1/images/generations \
 **图生图示例（通过 images 参数）：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/images/generations \
+curl -X POST http://localhost:15745/v1/images/generations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your_sessionid" \
   -d '{
@@ -191,7 +236,7 @@ curl -X POST http://localhost:8000/v1/images/generations \
 **视频生成示例：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/videos/generations \
+curl -X POST http://localhost:15745/v1/videos/generations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your_sessionid" \
   -d '{
@@ -206,7 +251,7 @@ curl -X POST http://localhost:8000/v1/videos/generations \
 **Seedance 2.0 多图视频示例：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/videos/generations \
+curl -X POST http://localhost:15745/v1/videos/generations \
   -H "Authorization: Bearer your_sessionid" \
   -F "model=jimeng-video-seedance-2.0" \
   -F "prompt=@1 和 @2 两人开始跳舞" \
@@ -219,7 +264,7 @@ curl -X POST http://localhost:8000/v1/videos/generations \
 **Seedance 2.0-fast 快速视频示例：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/videos/generations \
+curl -X POST http://localhost:15745/v1/videos/generations \
   -H "Authorization: Bearer your_sessionid" \
   -F "model=jimeng-video-seedance-2.0-fast" \
   -F "prompt=@1 图片中的人物开始微笑" \
@@ -231,7 +276,7 @@ curl -X POST http://localhost:8000/v1/videos/generations \
 **Seedance 图片+音频混合示例：**
 
 ```bash
-curl -X POST http://localhost:8000/v1/videos/generations \
+curl -X POST http://localhost:15745/v1/videos/generations \
   -H "Authorization: Bearer your_sessionid" \
   -F "model=jimeng-video-seedance-2.0-fast" \
   -F "prompt=@1 图片中的人物随着音乐 @2 开始跳舞" \
@@ -422,8 +467,8 @@ jimeng-free-api-all/
 
 ```bash
 # 克隆项目
-git clone https://github.com/wwwzhouhui/jimeng-free-api-all.git
-cd jimeng-free-api-all
+git clone https://github.com/445022889/jimeng2me_newapi.git
+cd jimeng2me_newapi
 
 # 安装依赖
 npm install
@@ -485,7 +530,7 @@ Authorization: Bearer sessionid1,sessionid2,sessionid3
 <details>
 <summary>Docker 容器无法启动？</summary>
 
-1. 检查端口 8000 是否被占用
+1. 检查端口 15745 是否被占用
 2. 确保 Docker 服务正在运行
 3. 查看容器日志：`docker logs jimeng-free-api-all`
 
