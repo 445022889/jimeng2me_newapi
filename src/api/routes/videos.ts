@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import Request from '@/lib/request/Request.ts';
 import Response from '@/lib/response/Response.ts';
-import { tokenSplit } from '@/api/controllers/core.ts';
+import { resolveRequestToken, tokenSplit } from '@/api/controllers/core.ts';
 import { generateVideo, generateSeedanceVideo, isSeedanceModel, DEFAULT_MODEL } from '@/api/controllers/videos.ts';
 import util from '@/lib/util.ts';
 
@@ -45,10 +45,10 @@ export default {
                 .validate('body.file_paths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.response_format', v => _.isUndefined(v) || _.isString(v))
-                .validate('headers.authorization', _.isString);
+                .validate('body.token', v => _.isUndefined(v) || _.isString(v));
 
             // refresh_token切分
-            const tokens = tokenSplit(request.headers.authorization);
+            const tokens = tokenSplit(resolveRequestToken(request));
             // 随机挑选一个refresh_token
             const token = _.sample(tokens);
 

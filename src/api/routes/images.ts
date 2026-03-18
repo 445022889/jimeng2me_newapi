@@ -3,7 +3,7 @@ import _ from "lodash";
 
 import Request from "@/lib/request/Request.ts";
 import { generateImages, generateImageComposition } from "@/api/controllers/images.ts";
-import { tokenSplit } from "@/api/controllers/core.ts";
+import { resolveRequestToken, tokenSplit } from "@/api/controllers/core.ts";
 import util from "@/lib/util.ts";
 
 export default {
@@ -34,7 +34,7 @@ export default {
           .validate("body.intelligent_ratio", v => _.isUndefined(v) || (typeof v === 'string' && (v === 'true' || v === 'false')) || _.isBoolean(v))
           .validate("body.sample_strength", v => _.isUndefined(v) || (typeof v === 'string' && !isNaN(parseFloat(v))) || _.isFinite(v))
           .validate("body.response_format", v => _.isUndefined(v) || _.isString(v))
-          .validate("headers.authorization", _.isString);
+          .validate("body.token", v => _.isUndefined(v) || _.isString(v));
       } else {
         request
           .validate("body.model", v => _.isUndefined(v) || _.isString(v))
@@ -46,7 +46,7 @@ export default {
           .validate("body.intelligent_ratio", v => _.isUndefined(v) || _.isBoolean(v))
           .validate("body.sample_strength", v => _.isUndefined(v) || _.isFinite(v))
           .validate("body.response_format", v => _.isUndefined(v) || _.isString(v))
-          .validate("headers.authorization", _.isString);
+          .validate("body.token", v => _.isUndefined(v) || _.isString(v));
       }
 
       // 处理图片数据（如果提供）
@@ -81,7 +81,7 @@ export default {
       }
 
       // refresh_token切分
-      const tokens = tokenSplit(request.headers.authorization);
+      const tokens = tokenSplit(resolveRequestToken(request));
       // 随机挑选一个refresh_token
       const token = _.sample(tokens);
 
@@ -174,7 +174,7 @@ export default {
           .validate("body.intelligent_ratio", v => _.isUndefined(v) || (typeof v === 'string' && (v === 'true' || v === 'false')) || _.isBoolean(v))
           .validate("body.sample_strength", v => _.isUndefined(v) || (typeof v === 'string' && !isNaN(parseFloat(v))) || _.isFinite(v))
           .validate("body.response_format", v => _.isUndefined(v) || _.isString(v))
-          .validate("headers.authorization", _.isString);
+          .validate("body.token", v => _.isUndefined(v) || _.isString(v));
       } else {
         request
           .validate("body.model", v => _.isUndefined(v) || _.isString(v))
@@ -186,7 +186,7 @@ export default {
           .validate("body.intelligent_ratio", v => _.isUndefined(v) || _.isBoolean(v))
           .validate("body.sample_strength", v => _.isUndefined(v) || _.isFinite(v))
           .validate("body.response_format", v => _.isUndefined(v) || _.isString(v))
-          .validate("headers.authorization", _.isString);
+          .validate("body.token", v => _.isUndefined(v) || _.isString(v));
       }
 
       let images: (string | Buffer)[] = [];
@@ -223,7 +223,7 @@ export default {
       }
 
       // refresh_token切分
-      const tokens = tokenSplit(request.headers.authorization);
+      const tokens = tokenSplit(resolveRequestToken(request));
       // 随机挑选一个refresh_token
       const token = _.sample(tokens);
 

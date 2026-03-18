@@ -81,7 +81,11 @@ npm run dev
 
 ## 鉴权说明
 
-请求时在 `Authorization` 头中传入即梦站点的 `sessionid`：
+本项目现在支持两种即梦鉴权传法：
+
+### 1. 直接调用本项目
+
+在 `Authorization` 头中传入即梦站点的 `sessionid`：
 
 ```text
 Authorization: Bearer your_sessionid
@@ -92,6 +96,21 @@ Authorization: Bearer your_sessionid
 ```text
 Authorization: Bearer sessionid1,sessionid2,sessionid3
 ```
+
+### 2. 通过 NewAPI 之类的网关调用
+
+如果请求头里的 `Authorization` 需要留给 NewAPI 自己的个人令牌使用，就把即梦 `sessionid` 放进请求体里的 `token`：
+
+```json
+{
+  "token": "你的即梦 sessionid"
+}
+```
+
+当前接口会优先读取：
+
+1. `body.token`
+2. `headers.authorization`
 
 ## 接口列表
 
@@ -117,6 +136,7 @@ POST /v1/images/generations
 
 ```json
 {
+  "token": "your_sessionid",
   "model": "jimeng-4.5",
   "prompt": "美丽的日落风景，湖边的小屋",
   "ratio": "16:9",
@@ -129,8 +149,9 @@ POST /v1/images/generations
 ```bash
 curl -X POST http://127.0.0.1:15745/v1/images/generations \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_sessionid" \
+  -H "Authorization: Bearer your_newapi_key" \
   -d '{
+    "token": "your_sessionid",
     "model": "jimeng-4.5",
     "prompt": "美丽的日落风景，湖边的小屋",
     "ratio": "16:9",
@@ -150,6 +171,7 @@ POST /v1/chat/completions
 
 ```json
 {
+  "token": "your_sessionid",
   "model": "jimeng-5.0",
   "messages": [
     {
@@ -170,8 +192,9 @@ POST /v1/chat/completions
 ```bash
 curl -X POST http://127.0.0.1:15745/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_sessionid" \
+  -H "Authorization: Bearer your_newapi_key" \
   -d '{
+    "token": "your_sessionid",
     "model": "jimeng-5.0",
     "messages": [
       {
@@ -199,6 +222,7 @@ POST /v1/chat/completions
 
 ```json
 {
+  "token": "your_sessionid",
   "model": "jimeng-5.0",
   "messages": [
     {
@@ -223,8 +247,9 @@ POST /v1/chat/completions
 ```bash
 curl -X POST http://127.0.0.1:15745/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_sessionid" \
+  -H "Authorization: Bearer your_newapi_key" \
   -d '{
+    "token": "your_sessionid",
     "model": "jimeng-5.0",
     "messages": [
       {
@@ -249,8 +274,9 @@ curl -X POST http://127.0.0.1:15745/v1/chat/completions \
 ```bash
 curl -X POST http://127.0.0.1:15745/v1/images/generations \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_sessionid" \
+  -H "Authorization: Bearer your_newapi_key" \
   -d '{
+    "token": "your_sessionid",
     "model": "jimeng-4.5",
     "prompt": "将两张图融合成梦幻风格",
     "images": [
@@ -268,8 +294,9 @@ curl -X POST http://127.0.0.1:15745/v1/images/generations \
 ```bash
 curl -X POST http://127.0.0.1:15745/v1/videos/generations \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_sessionid" \
+  -H "Authorization: Bearer your_newapi_key" \
   -d '{
+    "token": "your_sessionid",
     "model": "jimeng-video-3.5-pro",
     "prompt": "一只可爱的小猫在草地上玩耍",
     "ratio": "16:9",
@@ -290,6 +317,7 @@ curl -X POST http://127.0.0.1:15745/v1/videos/generations \
 | `image_config.negative_prompt` | string | 反向提示词 |
 | `image_config.intelligent_ratio` | boolean | 是否启用智能比例 |
 | `images` | array | 图生图输入图片 URL 数组，最多 10 张 |
+| `token` | string | 即梦自己的 `sessionid`，适合通过 NewAPI 透传 |
 
 兼容驼峰写法：
 

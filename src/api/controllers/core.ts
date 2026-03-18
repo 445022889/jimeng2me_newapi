@@ -436,6 +436,29 @@ export function tokenSplit(authorization: string) {
 }
 
 /**
+ * 从请求中解析即梦 refresh_token。
+ *
+ * 优先使用 body.token，便于通过 NewAPI 等网关透传；
+ * 未提供时回退到 Authorization 头，兼容原有调用方式。
+ */
+export function resolveRequestToken(request: any) {
+  const bodyToken = _.get(request, "body.token");
+  const headerToken = _.get(request, "headers.authorization");
+  const token = [bodyToken, headerToken].find(
+    (value) => _.isString(value) && value.trim().length > 0
+  );
+
+  if (!token) {
+    throw new APIException(
+      EX.API_REQUEST_PARAMS_INVALID,
+      "Params body.token or headers.authorization invalid"
+    );
+  }
+
+  return token.trim();
+}
+
+/**
  * 获取Token存活状态
  */
 export async function getTokenLiveStatus(refreshToken: string) {

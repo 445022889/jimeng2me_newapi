@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import Request from '@/lib/request/Request.ts';
 import Response from '@/lib/response/Response.ts';
-import { tokenSplit } from '@/api/controllers/core.ts';
+import { resolveRequestToken, tokenSplit } from '@/api/controllers/core.ts';
 import { createCompletion, createCompletionStream } from '@/api/controllers/chat.ts';
 
 export default {
@@ -28,9 +28,9 @@ export default {
                 .validate('body.imageConfig.sampleStrength', v => _.isUndefined(v) || _.isFinite(v))
                 .validate('body.imageConfig.negativePrompt', v => _.isUndefined(v) || _.isString(v))
                 .validate('body.images', v => _.isUndefined(v) || _.isArray(v))
-                .validate('headers.authorization', _.isString)
+                .validate('body.token', v => _.isUndefined(v) || _.isString(v))
             // refresh_token切分
-            const tokens = tokenSplit(request.headers.authorization);
+            const tokens = tokenSplit(resolveRequestToken(request));
             // 随机挑选一个refresh_token
             const token = _.sample(tokens);
             const { model, messages, stream, image_config, imageConfig, images } = request.body;
